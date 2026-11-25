@@ -1,0 +1,113 @@
+@startuml
+title Sous-diagramme - Comptes et profils
+
+left to right direction
+skinparam shadowing false
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam packageTitleAlignment center
+skinparam classAttributeIconSize 0
+skinparam defaultFontName "Times New Roman"
+skinparam ClassBackgroundColor White
+skinparam ClassBorderColor Black
+skinparam PackageBackgroundColor White
+skinparam PackageBorderColor Black
+
+hide empty methods
+hide circle
+
+package "Authentification" {
+  class "users" as users {
+    +id : UUID <<PK>>
+    +email : varchar(255)
+    +password_hash : varchar(255)
+    +role : varchar
+    +phone : varchar(30)?
+    +is_active : boolean
+    +is_suspended : boolean
+  }
+
+  class "user_sessions" as user_sessions {
+    +id : UUID <<PK>>
+    +user_id : UUID <<FK>>
+    +token_hash : varchar(255)
+    +refresh_token_hash : varchar(255)?
+    +device_type : varchar(50)?
+    +is_active : boolean
+    +expires_at : timestamptz
+  }
+
+  class "password_reset_tokens" as password_reset_tokens {
+    +id : UUID <<PK>>
+    +user_id : UUID <<FK>>
+    +token_hash : varchar(255)
+    +expires_at : timestamptz
+    +used_at : timestamptz?
+  }
+
+  class "email_verification_tokens" as email_verification_tokens {
+    +id : UUID <<PK>>
+    +user_id : UUID <<FK>>
+    +email : varchar(255)
+    +token_hash : varchar(255)
+    +expires_at : timestamptz
+    +verified_at : timestamptz?
+  }
+}
+
+package "Profils metier" {
+  class "patients" as patients {
+    +id : UUID <<PK>>
+    +user_id : UUID <<FK>>
+    +first_name : varchar(100)
+    +last_name : varchar(100)
+    +date_of_birth : date?
+    +preferred_communication : varchar(20)?
+    +profile_completed : boolean
+  }
+
+  class "providers" as providers {
+    +id : UUID <<PK>>
+    +user_id : UUID <<FK>>
+    +service_category : varchar
+    +business_name : varchar(200)?
+    +first_name : varchar(100)?
+    +last_name : varchar(100)?
+    +is_verified : boolean
+    +is_approved : boolean
+  }
+
+  class "family_members" as family_members {
+    +id : UUID <<PK>>
+    +patient_id : UUID <<FK>>
+    +first_name : varchar(100)
+    +last_name : varchar(100)
+    +relationship : varchar(50)
+    +can_book_for : boolean
+    +can_view_history : boolean
+  }
+
+  class "patient_favorites" as patient_favorites {
+    +id : UUID <<PK>>
+    +patient_id : UUID <<FK>>
+    +provider_id : UUID <<FK>>
+    +notes : varchar(500)?
+  }
+}
+
+users "1" -- "0..1" patients : user_id
+users "1" -- "0..1" providers : user_id
+users "1" -- "0..*" user_sessions : user_id
+users "1" -- "0..*" password_reset_tokens : user_id
+users "1" -- "0..*" email_verification_tokens : user_id
+
+patients "1" -- "0..*" family_members : patient_id
+patients "1" -- "0..*" patient_favorites : patient_id
+providers "1" -- "0..*" patient_favorites : provider_id
+
+note bottom of users
+Le role stocke dans users determine
+le type de profil actif dans la plateforme.
+end note
+
+@enduml

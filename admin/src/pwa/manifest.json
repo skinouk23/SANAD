@@ -1,0 +1,148 @@
+
+{
+  "name": "Care@Home Tunisia - Sanad",
+  "short_name": "Sanad",
+  "description": "La première plateforme de soins à domicile en Tunisie. Connectez-vous avec des professionnels de santé qualifiés.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f172a",
+  "theme_color": "#06b6d4",
+  "scope": "/",
+  "lang": "fr",
+  "dir": "ltr",
+  "categories": ["health", "medical", "lifestyle"],
+  "icons": [
+    {
+      "src": "/icons/icon-72x72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-96x96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-128x128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-144x144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-152x152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-384x384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-maskable-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/home-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Accueil - Trouvez un soignant"
+    },
+    {
+      "src": "/screenshots/services-mobile.png",
+      "sizes": "390x844",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Nos services de santé"
+    },
+    {
+      "src": "/screenshots/home-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Accueil - Version desktop"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Trouver un soignant",
+      "short_name": "Services",
+      "description": "Rechercher un professionnel de santé",
+      "url": "/services",
+      "icons": [{ "src": "/icons/shortcut-services.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Mes rendez-vous",
+      "short_name": "RDV",
+      "description": "Voir mes rendez-vous",
+      "url": "/patient-dashboard",
+      "icons": [{ "src": "/icons/shortcut-appointments.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Urgence",
+      "short_name": "Urgence",
+      "description": "Services d'urgence",
+      "url": "/ambulance",
+      "icons": [{ "src": "/icons/shortcut-emergency.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Messages",
+      "short_name": "Messages",
+      "description": "Mes conversations",
+      "url": "/messages",
+      "icons": [{ "src": "/icons/shortcut-messages.png", "sizes": "96x96" }]
+    }
+  ],
+  "related_applications": [],
+  "prefer_related_applications": false,
+  "protocol_handlers": [
+    {
+      "protocol": "web+sanad",
+      "url": "/%s"
+    }
+  ],
+  "share_target": {
+    "action": "/share",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  }
+}

@@ -1,0 +1,237 @@
+# ==========================================================
+# 🚀 Care at Home - Frontend CI/CD Pipeline
+# Tech: React 18 / Vite / TypeScript / Vitest / Tailwind CSS
+# ==========================================================
+
+include:
+  - project: "prestacode-projects-devops/pipeline-cicd-templates-library"
+    ref: main
+    file:
+      - "templates/node.yml"
+      - "templates/sonar.yml"
+      - "templates/qualitygate.yml"
+      - "templates/ml-docker.yml"
+  - project: "prestacode-projects-devops/pipeline-cd-template-library"
+    ref: main
+    file: "main.yml"
+
+# ==========================================================
+# ⚙️ CONFIGURATION
+# ==========================================================
+
+variables:
+  # Quality thresholds
+  MIN_COVERAGE_FRONTEND: "80"
+  DOCKERFILE_PATH: "Dockerfile"
+  GIT_DEPTH: 50
+
+  # Project identity (used to compute Docker image path)
+  APP_NAME: "care-at-home"
+  APP_COMPONENT: "frontend"
+
+  # Deployment mode: "auto" or "manual"
+  DEPLOY_MODE_DEV: "auto"
+  DEPLOY_MODE_STAGING: "auto"
+  DEPLOY_MODE_PROD: "manual"
+
+default:
+  interruptible: true
+  retry:
+    max: 1
+    when:
+      - runner_system_failure
+      - unknown_failure
+
+stages:
+  - "🧪 Front Tests"
+  - "🔍 Sonar Scan"
+  - "✅ Quality Gate"
+  - "🏗️ Build"
+  - "🐳 Docker"
+  - "🚀 Deploy"
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop"'
+      variables:
+        APP_MATURITY: "scratch"
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+      variables:
+        APP_MATURITY: "dev"
+    - if: '$CI_COMMIT_BRANCH == "uat"'
+      variables:
+        APP_MATURITY: "staging"
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      variables:
+        APP_MATURITY: "stable"
+    - when: never
+
+# ==========================================================
+# 🧪 VALIDATION (MR to develop only)
+# ==========================================================
+
+frontend:test:
+  extends: .tpl_node_test
+  stage: "🧪 Front Tests"
+  allow_failure: true
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop"'
+
+frontend:sonar:
+  extends: .tpl_sonar_node
+  stage: "🔍 Sonar Scan"
+  variables:
+    SONAR_PROJECT_KEY: "care-at-home-frontend"
+  needs:
+    - job: frontend:test
+      artifacts: true
+  allow_failure: true
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop"'
+
+frontend:qualitygate:
+  extends: .tpl_quality_gate_frontend
+  stage: "✅ Quality Gate"
+  needs:
+    - job: frontend:test
+      artifacts: true
+    - job: frontend:sonar
+      artifacts: false
+  allow_failure: true
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop"'
+
+# ==========================================================
+# 🏗️ BUILD
+# ==========================================================
+
+frontend:build:
+  extends: .tpl_node_build
+  stage: "🏗️ Build"
+  allow_failure: false
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop"'
+      needs:
+        - job: frontend:qualitygate
+          artifacts: false
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+      needs: []
+    - if: '$CI_COMMIT_BRANCH == "uat"'
+      needs: []
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      needs: []
+  artifacts:
+    paths:
+      - dist/
+    expire_in: 1 week
+
+# ==========================================================
+# 🐳 DOCKER (branches only — not MR, not tags)
+# ==========================================================
+
+frontend:docker:
+  extends: .tpl_ml_docker_build_and_push
+  stage: "🐳 Docker"
+  needs:
+    - job: frontend:build
+      artifacts: true
+  variables:
+    USE_GIT_LFS: "false"
+    # dist/ is the Vite default — matches ARG DIST_PATH=dist in Dockerfile
+  allow_failure: false
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      when: never
+    - if: '$CI_COMMIT_TAG'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+      variables:
+        DOCKER_REGISTRY: "${DEV_DOCKER_REGISTRY}"
+    - if: '$CI_COMMIT_BRANCH == "uat"'
+      variables:
+        DOCKER_REGISTRY: "${UAT_DOCKER_REGISTRY}"
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      variables:
+        DOCKER_REGISTRY: "${PROD_DOCKER_REGISTRY}"
+
+# ==========================================================
+# 🚀 DEPLOYMENT
+# ==========================================================
+
+deploy:dev:
+  stage: "🚀 Deploy"
+  extends: .tpl_ansible_deploy_frontend
+  needs:
+    - job: frontend:docker
+  environment:
+    name: development
+    url: "http://${DEV_FRONTEND_DOMAIN}"
+  variables:
+    PLAYBOOK_URL: "${PLAYBOOK_URL_FRONTEND}"
+    PLAYBOOK_VERSION: "main"
+    ANSIBLE_PLAYBOOK_PATH: "deploy_ansible.yml"
+    DEPLOY_HOST: "${DEV_HOST}"
+    DEPLOY_USER: "${DEV_USER}"
+    DEPLOY_ROOT: "${DEV_DEPLOY_ROOT_FRONTEND}"
+    CONTAINER_NAME: "${DEV_FRONTEND_CONTAINER_NAME}"
+    CONTAINER_PORT: "${DEV_FRONTEND_PORT}"
+    FRONTEND_IMAGE: "${DEV_DOCKER_REGISTRY}/${APP_NAME}/${APP_MATURITY}/${APP_COMPONENT}:${APP_MATURITY}-${CI_PIPELINE_IID}"
+    FRONTEND_DOMAIN: "${DEV_FRONTEND_DOMAIN}"
+    BACKEND_URL: "${DEV_BACKEND_URL}"
+    DOCKER_REGISTRY: "${DEV_DOCKER_REGISTRY}"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "develop" && $DEPLOY_MODE_DEV == "manual"'
+      when: manual
+    - if: '$CI_COMMIT_BRANCH == "develop"'
+
+deploy:staging:
+  stage: "🚀 Deploy"
+  extends: .tpl_ansible_deploy_frontend
+  needs:
+    - job: frontend:docker
+  environment:
+    name: staging
+    url: "http://${STAGING_FRONTEND_DOMAIN}"
+  variables:
+    PLAYBOOK_URL: "${PLAYBOOK_URL_FRONTEND}"
+    PLAYBOOK_VERSION: "main"
+    ANSIBLE_PLAYBOOK_PATH: "deploy_ansible.yml"
+    DEPLOY_HOST: "${STAGING_HOST}"
+    DEPLOY_USER: "${STAGING_USER}"
+    DEPLOY_ROOT: "${STAGING_DEPLOY_ROOT_FRONTEND}"
+    CONTAINER_NAME: "${STAGING_FRONTEND_CONTAINER_NAME}"
+    CONTAINER_PORT: "${STAGING_FRONTEND_PORT}"
+    FRONTEND_IMAGE: "${UAT_DOCKER_REGISTRY}/${APP_NAME}/${APP_MATURITY}/${APP_COMPONENT}:${APP_MATURITY}-${CI_PIPELINE_IID}"
+    FRONTEND_DOMAIN: "${STAGING_FRONTEND_DOMAIN}"
+    BACKEND_URL: "${STAGING_BACKEND_URL}"
+    DOCKER_REGISTRY: "${UAT_DOCKER_REGISTRY}"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "uat" && $DEPLOY_MODE_STAGING == "manual"'
+      when: manual
+    - if: '$CI_COMMIT_BRANCH == "uat"'
+
+deploy:prod:
+  stage: "🚀 Deploy"
+  extends: .tpl_ansible_deploy_frontend
+  needs:
+    - job: frontend:docker
+  environment:
+    name: production
+    url: "https://${PROD_FRONTEND_DOMAIN}"
+  variables:
+    PLAYBOOK_URL: "${PLAYBOOK_URL_FRONTEND}"
+    PLAYBOOK_VERSION: "main"
+    ANSIBLE_PLAYBOOK_PATH: "deploy_ansible.yml"
+    DEPLOY_HOST: "${PROD_HOST}"
+    DEPLOY_USER: "${PROD_USER}"
+    DEPLOY_ROOT: "${PROD_DEPLOY_ROOT_FRONTEND}"
+    CONTAINER_NAME: "${PROD_FRONTEND_CONTAINER_NAME}"
+    CONTAINER_PORT: "${PROD_FRONTEND_PORT}"
+    FRONTEND_IMAGE: "${PROD_DOCKER_REGISTRY}/${APP_NAME}/${APP_MATURITY}/${APP_COMPONENT}:${APP_MATURITY}-${CI_PIPELINE_IID}"
+    FRONTEND_DOMAIN: "${PROD_FRONTEND_DOMAIN}"
+    BACKEND_URL: "${PROD_BACKEND_URL}"
+    DOCKER_REGISTRY: "${PROD_DOCKER_REGISTRY}"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main" && $DEPLOY_MODE_PROD == "auto"'
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      when: manual

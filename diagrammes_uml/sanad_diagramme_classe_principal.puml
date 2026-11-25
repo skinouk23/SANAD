@@ -1,0 +1,140 @@
+@startuml
+title Diagramme de classes principal de la plateforme Sanad
+
+top to bottom direction
+skinparam shadowing false
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam packageTitleAlignment center
+skinparam classAttributeIconSize 0
+skinparam defaultFontName "Times New Roman"
+skinparam ClassBackgroundColor White
+skinparam ClassBorderColor Black
+skinparam PackageBackgroundColor White
+skinparam PackageBorderColor Black
+
+hide empty methods
+hide circle
+
+package "Comptes et profils" {
+  class "users" as users {
+    +id : UUID <<PK>>
+    +email : varchar(255)
+    +role : varchar
+    +is_active : boolean
+  }
+
+  class "patients" as patients {
+    +id : UUID <<PK>>
+    +user_id : UUID <<FK>>
+    +first_name : varchar(100)
+    +last_name : varchar(100)
+  }
+
+  class "providers" as providers {
+    +id : UUID <<PK>>
+    +user_id : UUID <<FK>>
+    +service_category : varchar
+    +is_approved : boolean
+    +is_available : boolean
+  }
+}
+
+package "Catalogue et reservation" {
+  class "services" as services {
+    +id : UUID <<PK>>
+    +provider_id : UUID <<FK>>
+    +name : varchar(200)
+    +category : varchar
+    +price : numeric(10,2)
+    +is_active : boolean
+  }
+
+  class "bookings" as bookings {
+    +id : UUID <<PK>>
+    +patient_id : UUID <<FK>>
+    +provider_id : UUID <<FK>>
+    +service_id : UUID <<FK>>
+    +status : varchar(50)
+    +start_date : date
+    +total_amount : numeric(10,2)
+  }
+
+  class "equipment_rentals" as equipment_rentals {
+    +id : UUID <<PK>>
+    +booking_id : UUID <<FK>>
+    +equipment_name : varchar(200)
+    +rental_start_date : date
+    +rental_end_date : date
+  }
+
+  class "pharmacy_orders" as pharmacy_orders {
+    +id : UUID <<PK>>
+    +booking_id : UUID <<FK>>
+    +items : varchar(2000)
+    +amount : numeric(10,2)?
+    +order_date : timestamptz
+  }
+}
+
+package "Paiement et interaction" {
+  class "transactions" as transactions {
+    +id : UUID <<PK>>
+    +booking_id : UUID <<FK>>
+    +payment_status : varchar(50)
+    +amount : numeric(10,2)
+    +provider_amount : numeric(10,2)
+  }
+
+  class "conversations" as conversations {
+    +id : UUID <<PK>>
+    +patient_id : UUID <<FK>>
+    +provider_id : UUID <<FK>>
+    +last_message_at : timestamptz?
+  }
+
+  class "messages" as messages {
+    +id : UUID <<PK>>
+    +conversation_id : UUID <<FK>>
+    +sender_id : UUID <<FK>>
+    +message_type : varchar(20)
+    +is_read : boolean
+  }
+
+  class "reviews" as reviews {
+    +id : UUID <<PK>>
+    +booking_id : UUID <<FK>>
+    +patient_id : UUID <<FK>>
+    +provider_id : UUID <<FK>>
+    +rating : int
+    +is_visible : boolean
+  }
+}
+
+users "1" -- "0..1" patients : user_id
+users "1" -- "0..1" providers : user_id
+providers "1" -- "0..*" services : provider_id
+
+patients "1" -- "0..*" bookings : patient_id
+providers "1" -- "0..*" bookings : provider_id
+services "1" -- "0..*" bookings : service_id
+bookings "1" -- "0..1" transactions : booking_id
+
+patients "1" -- "0..*" conversations : patient_id
+providers "1" -- "0..*" conversations : provider_id
+conversations "1" -- "0..*" messages : conversation_id
+users "1" -- "0..*" messages : sender_id
+
+bookings "1" -- "0..1" reviews : booking_id
+patients "1" -- "0..*" reviews : patient_id
+providers "1" -- "0..*" reviews : provider_id
+
+bookings "1" -- "0..1" equipment_rentals : booking_id
+bookings "1" -- "0..1" pharmacy_orders : booking_id
+
+note bottom of bookings
+bookings est la classe pivot du noyau metier.
+Les details avances sont decomposes dans les sous-diagrammes.
+end note
+
+@enduml

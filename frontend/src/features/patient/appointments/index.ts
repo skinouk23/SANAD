@@ -1,0 +1,1 @@
+export { PatientAppointmentsScreen } from './PatientAppointmentsScreen';

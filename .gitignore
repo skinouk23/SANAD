@@ -1,0 +1,8 @@
+.env
+.env.*
+!.env.example
+.codex-run/
+.npm-cache/
+**/.obsidian/workspace.json
+/frontend/eslint-check.json
+/frontend/eslint-output.json

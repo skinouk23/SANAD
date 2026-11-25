@@ -1,0 +1,103 @@
+@startuml
+title Sous-diagramme - Catalogue, disponibilite et pieces du professionnel
+
+left to right direction
+skinparam shadowing false
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam packageTitleAlignment center
+skinparam classAttributeIconSize 0
+skinparam defaultFontName "Times New Roman"
+skinparam ClassBackgroundColor White
+skinparam ClassBorderColor Black
+skinparam PackageBackgroundColor White
+skinparam PackageBorderColor Black
+
+hide empty methods
+hide circle
+
+class "providers" as providers {
+  +id : UUID <<PK>>
+  +user_id : UUID <<FK>>
+  +service_category : varchar
+  +service_radius_km : int
+  +is_available : boolean
+  +availability_status : varchar(50)
+  +subscription_tier : varchar
+}
+
+class "services" as services {
+  +id : UUID <<PK>>
+  +provider_id : UUID <<FK>>
+  +category : varchar
+  +name : varchar(200)
+  +price : numeric(10,2)
+  +price_type : varchar(20)
+  +service_location : varchar(20)
+  +is_active : boolean
+  +available_quantity : int?
+}
+
+class "service_addons" as service_addons {
+  +id : UUID <<PK>>
+  +service_id : UUID <<FK>>
+  +name : varchar(200)
+  +price : numeric(10,2)
+  +duration_minutes : int?
+  +is_supplement : boolean
+  +is_active : boolean
+}
+
+class "provider_schedules" as provider_schedules {
+  +id : UUID <<PK>>
+  +provider_id : UUID <<FK>>
+  +day_of_week : int
+  +start_time : time
+  +end_time : time
+  +is_available : boolean
+  +service_id : UUID <<FK>>?
+}
+
+class "provider_unavailability" as provider_unavailability {
+  +id : UUID <<PK>>
+  +provider_id : UUID <<FK>>
+  +start_datetime : timestamptz
+  +end_datetime : timestamptz
+  +is_all_day : boolean
+  +is_recurring : boolean
+  +reason : varchar(200)?
+}
+
+class "provider_documents" as provider_documents {
+  +id : UUID <<PK>>
+  +provider_id : UUID <<FK>>
+  +document_type : varchar
+  +document_name : varchar(200)?
+  +is_verified : boolean
+  +issue_date : date?
+  +expiry_date : date?
+}
+
+class "provider_certifications" as provider_certifications {
+  +id : UUID <<PK>>
+  +provider_id : UUID <<FK>>
+  +certification_name : varchar(200)
+  +issuing_organization : varchar(200)?
+  +certification_number : varchar(100)?
+  +is_verified : boolean
+}
+
+providers "1" -- "0..*" services : provider_id
+services "1" -- "0..*" service_addons : service_id
+providers "1" -- "0..*" provider_schedules : provider_id
+services "0..1" -- "0..*" provider_schedules : service_id
+providers "1" -- "0..*" provider_unavailability : provider_id
+providers "1" -- "0..*" provider_documents : provider_id
+providers "1" -- "0..*" provider_certifications : provider_id
+
+note bottom of services
+La table services sert aussi de socle
+pour les services specialises, notamment equipment et pharmacy.
+end note
+
+@enduml

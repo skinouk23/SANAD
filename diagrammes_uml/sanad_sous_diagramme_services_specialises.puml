@@ -1,0 +1,113 @@
+@startuml
+title Sous-diagramme - Services specialises lies aux reservations
+
+left to right direction
+skinparam shadowing false
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam packageTitleAlignment center
+skinparam classAttributeIconSize 0
+skinparam defaultFontName "Times New Roman"
+skinparam ClassBackgroundColor White
+skinparam ClassBorderColor Black
+skinparam PackageBackgroundColor White
+skinparam PackageBorderColor Black
+
+hide empty methods
+hide circle
+
+class "providers" as providers {
+  +id : UUID <<PK>>
+  +user_id : UUID <<FK>>
+  +service_category : varchar
+}
+
+class "bookings" as bookings {
+  +id : UUID <<PK>>
+  +provider_id : UUID <<FK>>
+  +service_id : UUID <<FK>>
+  +status : varchar(50)
+  +start_date : date
+  +total_amount : numeric(10,2)
+}
+
+class "equipment_rentals" as equipment_rentals {
+  +id : UUID <<PK>>
+  +booking_id : UUID <<FK>>
+  +equipment_name : varchar(200)
+  +equipment_serial_number : varchar(100)?
+  +rental_duration_type : varchar(20)
+  +period_rate : numeric(10,2)
+  +period_count : int
+  +deposit_amount : numeric(10,2)?
+}
+
+class "pharmacy_orders" as pharmacy_orders {
+  +id : UUID <<PK>>
+  +booking_id : UUID <<FK>>
+  +items : varchar(2000)
+  +amount : numeric(10,2)?
+  +prescription_url : varchar(500)?
+  +delivery_address : varchar(500)?
+  +order_date : timestamptz
+}
+
+class "ambulance_bookings" as ambulance_bookings {
+  +id : UUID <<PK>>
+  +booking_id : UUID <<FK>>
+  +service_type : varchar(50)
+  +pickup_address : text
+  +destination_address : text
+  +requires_stretcher : boolean
+  +requires_oxygen : boolean
+  +requested_pickup_time : timestamptz?
+}
+
+class "veterinary_bookings" as veterinary_bookings {
+  +id : UUID <<PK>>
+  +booking_id : UUID <<FK>>
+  +animal_type : varchar(50)
+  +animal_name : varchar(200)
+  +animal_breed : varchar(100)?
+  +has_medical_record : boolean
+}
+
+class "funeral_bookings" as funeral_bookings {
+  +id : UUID <<PK>>
+  +booking_id : UUID <<FK>>
+  +deceased_name : varchar(200)
+  +contact_name : varchar(200)
+  +contact_phone : varchar(30)
+  +ceremony_type : varchar(50)?
+  +requires_repatriation : boolean
+}
+
+class "insurance_claims" as insurance_claims {
+  +id : UUID <<PK>>
+  +claim_number : varchar(50)
+  +provider_id : UUID <<FK>>
+  +booking_id : UUID?
+  +patient_name : varchar(200)
+  +service_date : date
+  +claimed_amount : numeric(10,2)
+  +status : varchar(20)
+}
+
+bookings "1" -- "0..1" equipment_rentals : booking_id
+bookings "1" -- "0..1" pharmacy_orders : booking_id
+bookings "1" -- "0..1" ambulance_bookings : booking_id
+bookings "1" -- "0..1" veterinary_bookings : booking_id
+bookings "1" -- "0..1" funeral_bookings : booking_id
+providers "1" -- "0..*" insurance_claims : provider_id
+
+note bottom of insurance_claims
+booking_id existe dans insurance_claims,
+mais aucune relation EF Core explicite n'est definie vers bookings.
+end note
+
+note bottom of bookings
+Chaque table specialisee etend une reservation standard
+avec des attributs propres a un type de service.
+end note
+
+@enduml

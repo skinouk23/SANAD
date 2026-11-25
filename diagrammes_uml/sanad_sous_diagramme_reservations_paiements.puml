@@ -1,0 +1,156 @@
+@startuml
+title Sous-diagramme - Reservations, suivi, litiges et paiements
+
+left to right direction
+skinparam shadowing false
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam packageTitleAlignment center
+skinparam classAttributeIconSize 0
+skinparam defaultFontName "Times New Roman"
+skinparam ClassBackgroundColor White
+skinparam ClassBorderColor Black
+skinparam PackageBackgroundColor White
+skinparam PackageBorderColor Black
+
+hide empty methods
+hide circle
+
+class "users" as users {
+  +id : UUID <<PK>>
+  +role : varchar
+}
+
+class "patients" as patients {
+  +id : UUID <<PK>>
+  +user_id : UUID <<FK>>
+}
+
+class "providers" as providers {
+  +id : UUID <<PK>>
+  +user_id : UUID <<FK>>
+}
+
+class "services" as services {
+  +id : UUID <<PK>>
+  +provider_id : UUID <<FK>>
+  +name : varchar(200)
+}
+
+class "family_members" as family_members {
+  +id : UUID <<PK>>
+  +patient_id : UUID <<FK>>
+}
+
+class "bookings" as bookings {
+  +id : UUID <<PK>>
+  +booking_number : varchar(20)
+  +patient_id : UUID <<FK>>
+  +provider_id : UUID <<FK>>
+  +service_id : UUID <<FK>>
+  +family_member_id : UUID <<FK>>?
+  +status : varchar(50)
+  +start_date : date
+  +end_date : date
+  +total_amount : numeric(10,2)
+}
+
+class "booking_line_items" as booking_line_items {
+  +id : UUID <<PK>>
+  +booking_id : UUID <<FK>>
+  +service_id : UUID <<FK>>
+  +service_name : varchar(200)
+  +quantity : int
+  +unit_price : numeric(10,2)
+}
+
+class "booking_status_history" as booking_status_history {
+  +id : UUID <<PK>>
+  +booking_id : UUID <<FK>>
+  +previous_status : varchar?
+  +new_status : varchar
+  +changed_by : UUID <<FK>>?
+  +change_reason : varchar(500)?
+}
+
+class "transactions" as transactions {
+  +id : UUID <<PK>>
+  +booking_id : UUID <<FK>>
+  +patient_id : UUID <<FK>>
+  +provider_id : UUID <<FK>>
+  +transaction_number : varchar(30)
+  +payment_method : varchar(50)
+  +payment_status : varchar(50)
+  +amount : numeric(10,2)
+}
+
+class "refunds" as refunds {
+  +id : UUID <<PK>>
+  +transaction_id : UUID <<FK>>
+  +booking_id : UUID <<FK>>
+  +amount : numeric(10,2)
+  +reason : varchar(1000)
+  +status : varchar(20)
+}
+
+class "tracking_sessions" as tracking_sessions {
+  +id : UUID <<PK>>
+  +booking_id : UUID <<FK>>
+  +is_active : boolean
+  +share_token : varchar(100)?
+  +estimated_arrival_at : timestamptz?
+}
+
+class "provider_locations" as provider_locations {
+  +id : UUID <<PK>>
+  +provider_id : UUID <<FK>>
+  +booking_id : UUID <<FK>>?
+  +latitude : numeric(10,8)
+  +longitude : numeric(11,8)
+  +recorded_at : timestamptz
+}
+
+class "disputes" as disputes {
+  +id : UUID <<PK>>
+  +booking_id : UUID <<FK>>
+  +transaction_id : UUID <<FK>>?
+  +reported_by : UUID <<FK>>
+  +reported_against : UUID <<FK>>
+  +reason : varchar(100)
+  +status : varchar(50)
+}
+
+class "dispute_messages" as dispute_messages {
+  +id : UUID <<PK>>
+  +dispute_id : UUID <<FK>>
+  +sender_id : UUID <<FK>>
+  +message : varchar(5000)
+  +is_internal : boolean
+}
+
+patients "1" -- "0..*" bookings : patient_id
+providers "1" -- "0..*" bookings : provider_id
+services "1" -- "0..*" bookings : service_id
+family_members "0..1" -- "0..*" bookings : family_member_id
+
+bookings "1" -- "0..*" booking_line_items : booking_id
+services "1" -- "0..*" booking_line_items : service_id
+bookings "1" -- "0..*" booking_status_history : booking_id
+users "1" -- "0..*" booking_status_history : changed_by
+
+bookings "1" -- "0..1" transactions : booking_id
+patients "1" -- "0..*" transactions : patient_id
+providers "1" -- "0..*" transactions : provider_id
+transactions "1" -- "0..*" refunds : transaction_id
+bookings "1" -- "0..*" refunds : booking_id
+
+bookings "1" -- "0..1" tracking_sessions : booking_id
+providers "1" -- "0..*" provider_locations : provider_id
+bookings "0..1" -- "0..*" provider_locations : booking_id
+
+bookings "1" -- "0..1" disputes : booking_id
+transactions "0..1" -- "0..*" disputes : transaction_id
+disputes "1" -- "0..*" dispute_messages : dispute_id
+users "1" -- "0..*" dispute_messages : sender_id
+
+@enduml

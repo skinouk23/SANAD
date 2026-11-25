@@ -1,0 +1,29 @@
+{
+  "sharedShell": {
+    "maxGzipKiB": 450
+  },
+  "heavyRouteEntryBundles": {
+    "include": ["src/pages/"],
+    "maxDeltaGzipKiB": 175
+  },
+  "optionalFeatureDomains": [
+    {
+      "label": "assistant-tools",
+      "include": [
+        "src/features/assistant/chatbot/ChatbotAssistantDialog.tsx",
+        "src/features/assistant/voice/VoiceAssistantPanel.tsx"
+      ],
+      "maxDeltaGzipKiB": 100
+    },
+    {
+      "label": "mapping-stack",
+      "include": ["leaflet"],
+      "maxDeltaGzipKiB": 55
+    },
+    {
+      "label": "report-export-stack",
+      "include": ["node_modules/canvg/", "node_modules/html2canvas/", "node_modules/jspdf/"],
+      "maxDeltaGzipKiB": 240
+    }
+  ]
+}

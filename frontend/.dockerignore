@@ -1,0 +1,10 @@
+node_modules/
+dist/
+coverage/
+.vite/
+.husky/
+.git/
+.gitignore
+.env
+.env.*
+!.env.example
